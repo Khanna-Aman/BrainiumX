@@ -6,11 +6,15 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
+import '../../../core/utils/difficulty_manager.dart';
+import '../../../core/utils/game_difficulty_config.dart';
+import '../difficulty_selection_screen.dart' as difficulty_screen;
 
 class MemoryGridGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const MemoryGridGame({super.key, required this.gameId});
+  const MemoryGridGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<MemoryGridGame> createState() => _MemoryGridGameState();
@@ -42,6 +46,32 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getMemoryGridConfig(widget.difficulty!);
+      _totalRounds = difficultyConfig.rounds;
+      _timeLimit = difficultyConfig.timeLimit;
+      _gridSize = difficultyConfig.gameSpecific['gridSize'] as int;
+      _remainingTime = _timeLimit;
+    } else {
+      // Fallback to rating-based configuration
+      final gameConfigs = ref.read(gameConfigsProvider);
+      final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+      final rating = config.difficultyRating;
+
+      // Use the new difficulty manager
+      final difficultyConfig = DifficultyManager.getMemoryGridConfig(rating);
+
+      _totalRounds = difficultyConfig.totalRounds;
+      _timeLimit = difficultyConfig.timeLimit;
+      _gridSize = difficultyConfig.gridSize;
+      _remainingTime = _timeLimit;
+    }
   }
 
   @override
@@ -70,7 +100,8 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.grid_4x4, size: 64, color: Colors.orange),
+          Icon(Icons.grid_4x4,
+              size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             'Memory Grid',
@@ -82,14 +113,19 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '• Watch the grid carefully\n'
             '• Some squares will light up briefly\n'
             '• Remember which squares were highlighted\n'
             '• Then tap the squares you remember\n'
-            '• Complete 8 rounds with increasing difficulty',
+            '• Complete rounds with increasing difficulty\n'
+            '• Difficulty adapts to your skill level:\n'
+            '  - Very Easy: 3 rounds, 3×3 grid\n'
+            '  - Easy: 5 rounds, 4×4 grid\n'
+            '  - Medium: 8 rounds, 4×4 grid\n'
+            '  - Hard: 12 rounds, 5×5 grid',
             textAlign: TextAlign.left,
-            style: TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 32),
           ElevatedButton(
@@ -159,11 +195,12 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
                     final isTarget = _targetCells.contains(index);
                     final isSelected = _selectedCells.contains(index);
 
-                    Color color = Colors.grey[300]!;
+                    Color color =
+                        Theme.of(context).colorScheme.surfaceContainerHighest;
                     if (_showingPattern && isTarget) {
-                      color = Colors.blue;
+                      color = Theme.of(context).colorScheme.primary;
                     } else if (_recallPhase && isSelected) {
-                      color = Colors.green;
+                      color = Theme.of(context).colorScheme.tertiary;
                     }
 
                     return GestureDetector(
@@ -171,7 +208,9 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: color,
-                          border: Border.all(color: Colors.black, width: 2),
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -183,35 +222,50 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
           ),
         ),
 
-        if (_recallPhase)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              onPressed: _submitAnswer,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              ),
-              child: const Text('Submit', style: TextStyle(fontSize: 18)),
-            ),
-          ),
+        // Always show button area to prevent layout shift
+        Container(
+          height: 80, // Fixed height to prevent shifting
+          padding: const EdgeInsets.all(16),
+          child: _recallPhase
+              ? ElevatedButton(
+                  onPressed: _submitAnswer,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                  ),
+                  child: const Text('Submit', style: TextStyle(fontSize: 18)),
+                )
+              : const SizedBox(), // Empty space when not in recall phase
+        ),
       ],
     );
   }
 
   Widget _buildResults() {
     final accuracy = _responses.where((r) => r).length / _totalRounds;
+    final (congratsMessage, encouragementMessage) =
+        _getCongratulationsMessage(accuracy);
 
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+          Icon(Icons.emoji_events,
+              size: 64, color: Theme.of(context).colorScheme.tertiary),
           const SizedBox(height: 24),
           Text(
-            'Game Complete!',
+            congratsMessage,
             style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            encouragementMessage,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           Card(
@@ -260,7 +314,19 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
   }
 
   void _startRound() {
-    final numTargets = 2 + (_currentRound ~/ 2); // Increase difficulty
+    // Get difficulty configuration
+    final gameConfigs = ref.read(gameConfigsProvider);
+    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+    final rating = config.difficultyRating;
+    final difficultyConfig = DifficultyManager.getMemoryGridConfig(rating);
+
+    // Calculate number of targets based on difficulty and round progression
+    final progressRatio = _currentRound / _totalRounds;
+    final targetRange =
+        difficultyConfig.maxTargets - difficultyConfig.startingTargets;
+    final numTargets = difficultyConfig.startingTargets +
+        (targetRange * progressRatio).round();
+
     _targetCells.clear();
     _selectedCells.clear();
 
@@ -346,5 +412,39 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
         ],
       ),
     );
+  }
+
+  (String, String) _getCongratulationsMessage(double accuracy) {
+    if (accuracy >= 0.9) {
+      return (
+        'Outstanding! 🌟',
+        'Your memory is incredible! You\'re a true champion!'
+      );
+    } else if (accuracy >= 0.8) {
+      return (
+        'Excellent Work! 🎉',
+        'Amazing memory skills! You\'re getting really good at this!'
+      );
+    } else if (accuracy >= 0.7) {
+      return (
+        'Great Job! 👏',
+        'Your memory is improving! Keep up the fantastic work!'
+      );
+    } else if (accuracy >= 0.6) {
+      return (
+        'Well Done! 💪',
+        'Good effort! Your memory skills are developing nicely!'
+      );
+    } else if (accuracy >= 0.5) {
+      return (
+        'Nice Try! 🎯',
+        'You\'re learning! Every attempt makes your memory stronger!'
+      );
+    } else {
+      return (
+        'Keep Going! 🚀',
+        'Practice makes perfect! Your memory will improve with each game!'
+      );
+    }
   }
 }

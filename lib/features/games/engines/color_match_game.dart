@@ -10,52 +10,51 @@ import '../../../core/utils/question_tracker.dart';
 import '../../../core/utils/game_difficulty_config.dart';
 import '../difficulty_selection_screen.dart' as difficulty_screen;
 
-class VisualSearchGame extends ConsumerStatefulWidget {
+class ColorMatchGame extends ConsumerStatefulWidget {
   final GameId gameId;
   final difficulty_screen.DifficultyLevel? difficulty;
 
-  const VisualSearchGame({super.key, required this.gameId, this.difficulty});
+  const ColorMatchGame({super.key, required this.gameId, this.difficulty});
 
   @override
-  ConsumerState<VisualSearchGame> createState() => _VisualSearchGameState();
+  ConsumerState<ColorMatchGame> createState() => _ColorMatchGameState();
 }
 
-class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
+class _ColorMatchGameState extends ConsumerState<ColorMatchGame>
     with QuestionTrackingMixin {
   @override
   GameId get gameId => widget.gameId;
   late Random _random;
   Timer? _gameTimer;
+  Timer? _sequenceTimer;
 
   bool _gameStarted = false;
   bool _gameEnded = false;
 
   int _currentRound = 0;
-  int _totalRounds = 10;
+  int _totalRounds = 12;
   int _timeLimit = 90;
   int _remainingTime = 90;
 
   List<int> _scores = [];
   double _totalScore = 0;
 
-  List<VisualItem> _items = [];
-  List<String> _availableSymbols = [];
-  String _correctAnswer = '';
-  String? _selectedAnswer;
+  List<Color> _sequence = [];
+  List<Color> _userSequence = [];
+  bool _showingSequence = false;
+  bool _acceptingInput = false;
   bool _showingResult = false;
   bool _answeredCorrectly = false;
+  int _sequenceIndex = 0;
 
-  final List<String> _allSymbols = ['●', '■', '▲', '◆', '★', '♦', '♠', '♣'];
   final List<Color> _colors = [
     Colors.red,
     Colors.blue,
     Colors.green,
-    Colors.orange,
+    Colors.yellow,
     Colors.purple,
+    Colors.orange,
   ];
-
-  // Track used symbol combinations to prevent repeats
-  Set<String> _usedCombinations = {};
 
   @override
   void initState() {
@@ -68,7 +67,7 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
     if (widget.difficulty != null) {
       // Use difficulty-based configuration
       final difficultyConfig =
-          DifficultyConfigProvider.getVisualSearchConfig(widget.difficulty!);
+          DifficultyConfigProvider.getColorMatchConfig(widget.difficulty!);
       _totalRounds = difficultyConfig.rounds;
       _timeLimit = difficultyConfig.timeLimit;
       _remainingTime = _timeLimit;
@@ -79,6 +78,7 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
   @override
   void dispose() {
     _gameTimer?.cancel();
+    _sequenceTimer?.cancel();
     super.dispose();
   }
 
@@ -99,16 +99,16 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.visibility,
+          Icon(Icons.palette,
               size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
-            'Visual Search',
+            'Color Match',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
           Text(
-            'Look at the grid of symbols and identify which symbol appears most frequently.',
+            'Watch the sequence of colors, then repeat it in the same order.',
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -155,7 +155,11 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Which symbol appears MOST frequently?',
+                  _showingSequence
+                      ? 'Watch the sequence...'
+                      : _acceptingInput
+                          ? 'Repeat the sequence'
+                          : 'Get ready...',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -167,39 +171,41 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
           ),
         ),
 
-        // Grid of symbols
+        // Color Grid
         Expanded(
           child: Container(
             margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Theme.of(context).colorScheme.outline),
-              borderRadius: BorderRadius.circular(8),
-            ),
             child: GridView.builder(
-              padding: const EdgeInsets.all(8),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
+                crossAxisCount: 3,
                 childAspectRatio: 1,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
-              itemCount: _items.length,
+              itemCount: _colors.length,
               itemBuilder: (context, index) {
-                final item = _items[index];
-                return Container(
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.shape,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: item.color,
-                        fontWeight: FontWeight.bold,
+                final color = _colors[index];
+                final isHighlighted = _showingSequence &&
+                    _sequenceIndex < _sequence.length &&
+                    _sequence[_sequenceIndex] == color;
+
+                return GestureDetector(
+                  onTap: _acceptingInput ? () => _selectColor(color) : null,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isHighlighted ? Colors.white : Colors.black26,
+                        width: isHighlighted ? 6 : 2,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: isHighlighted ? 12 : 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -208,78 +214,45 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
           ),
         ),
 
-        // Multiple Choice Options
-        if (!_showingResult)
+        // User sequence display
+        if (_acceptingInput || _showingResult)
           Container(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Text(
-                  'Select the symbol that appears most frequently:',
+                  'Your sequence:',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _availableSymbols.map((symbol) {
-                    final isSelected = _selectedAnswer == symbol;
-                    return GestureDetector(
-                      onTap: () => _selectAnswer(symbol),
-                      child: Container(
-                        width: 80,
-                        height: 80,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (int i = 0; i < _sequence.length; i++)
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.outline,
-                            width: isSelected ? 3 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            symbol,
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
+                          color: i < _userSequence.length
+                              ? _userSequence[i]
+                              : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.black26),
                         ),
                       ),
-                    );
-                  }).toList(),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _selectedAnswer != null ? _submitAnswer : null,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                const SizedBox(height: 16),
+                if (_acceptingInput)
+                  ElevatedButton(
+                    onPressed: _userSequence.length == _sequence.length
+                        ? _submitAnswer
+                        : null,
+                    child: const Text('Submit'),
                   ),
-                  child: Text(
-                    'Submit Answer',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                // Extra bottom padding to prevent navigation button overlap
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
               ],
             ),
           ),
@@ -312,14 +285,6 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
                             : Theme.of(context).colorScheme.onErrorContainer,
                       ),
                 ),
-                Text(
-                  'The correct answer was "$_correctAnswer"',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: _answeredCorrectly
-                            ? Theme.of(context).colorScheme.onTertiaryContainer
-                            : Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _nextRound,
@@ -330,6 +295,9 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
               ],
             ),
           ),
+
+        // Extra bottom padding to prevent navigation button overlap
+        SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
       ],
     );
   }
@@ -397,103 +365,89 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
   }
 
   void _generateRound() async {
-    _items.clear();
-    _selectedAnswer = null;
+    _sequence.clear();
+    _userSequence.clear();
+    _showingSequence = false;
+    _acceptingInput = false;
     _showingResult = false;
+    _sequenceIndex = 0;
 
-    // Generate unique round using question tracking
-    final roundData = await generateUniqueQuestion<Map<String, dynamic>>(
-      (round) => QuestionKeyGenerator.visualSearchKey(
-        round['symbols'] as List<String>,
-        round['counts'] as Map<String, int>,
+    // Generate sequence length based on round (starts at 3, increases every 2 rounds)
+    final sequenceLength = 3 + (_currentRound ~/ 2);
+
+    // Generate unique sequence using question tracking
+    final colorSequence = await generateUniqueQuestion<List<Color>>(
+      (sequence) => QuestionKeyGenerator.colorMatchKey(
+        sequence.map((c) => c.value.toString()).toList(),
       ),
       () {
-        // Generate 4-5 different symbols for this round
-        final numSymbols = 4 + _random.nextInt(2); // 4 or 5 symbols
-        final symbols =
-            (_allSymbols.toList()..shuffle(_random)).take(numSymbols).toList();
-
-        // Generate a grid of 64 symbols (8x8)
-        final totalItems = 64;
-        final symbolCounts = <String, int>{};
-
-        // Ensure each symbol appears at least once
-        for (final symbol in symbols) {
-          symbolCounts[symbol] = 1;
+        final sequence = <Color>[];
+        for (int i = 0; i < sequenceLength; i++) {
+          sequence.add(_colors[_random.nextInt(_colors.length)]);
         }
-
-        // Fill remaining slots randomly but ensure one symbol is clearly most frequent
-        final remainingSlots = totalItems - symbols.length;
-        final mostFrequentSymbol = symbols[_random.nextInt(symbols.length)];
-
-        // Give the most frequent symbol extra occurrences
-        final extraOccurrences = 8 + _random.nextInt(5); // 8-12 extra
-        symbolCounts[mostFrequentSymbol] =
-            (symbolCounts[mostFrequentSymbol] ?? 0) + extraOccurrences;
-
-        // Distribute remaining slots among other symbols
-        final remainingAfterMostFrequent = remainingSlots - extraOccurrences;
-        for (int i = 0; i < remainingAfterMostFrequent; i++) {
-          final symbol = symbols[_random.nextInt(symbols.length)];
-          symbolCounts[symbol] = (symbolCounts[symbol] ?? 0) + 1;
-        }
-
-        return {
-          'symbols': symbols,
-          'counts': symbolCounts,
-        };
+        return sequence;
       },
     );
 
-    _availableSymbols = roundData['symbols'] as List<String>;
-    final symbolCounts = roundData['counts'] as Map<String, int>;
+    _sequence = colorSequence;
 
-    // Find the most frequent symbol
-    _correctAnswer = '';
-    int maxCount = 0;
-    symbolCounts.forEach((symbol, count) {
-      if (count > maxCount) {
-        maxCount = count;
-        _correctAnswer = symbol;
-      }
+    // Start showing sequence after a brief delay
+    Timer(const Duration(milliseconds: 500), () {
+      _showSequence();
     });
-
-    // Generate visual items based on counts
-    _items.clear();
-    symbolCounts.forEach((symbol, count) {
-      for (int i = 0; i < count; i++) {
-        final color = _colors[_random.nextInt(_colors.length)];
-        _items.add(VisualItem(
-          shape: symbol,
-          color: color,
-          x: 0,
-          y: 0,
-          isTarget: false,
-        ));
-      }
-    });
-
-    // Shuffle the items to randomize positions
-    _items.shuffle(_random);
 
     setState(() {});
   }
 
-  void _selectAnswer(String symbol) {
+  void _showSequence() {
     setState(() {
-      _selectedAnswer = symbol;
+      _showingSequence = true;
+      _sequenceIndex = 0;
+    });
+
+    _sequenceTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+      setState(() {
+        _sequenceIndex++;
+      });
+
+      if (_sequenceIndex >= _sequence.length) {
+        timer.cancel();
+        // Brief pause before accepting input
+        Timer(const Duration(milliseconds: 500), () {
+          setState(() {
+            _showingSequence = false;
+            _acceptingInput = true;
+          });
+        });
+      }
+    });
+  }
+
+  void _selectColor(Color color) {
+    if (!_acceptingInput || _userSequence.length >= _sequence.length) return;
+
+    setState(() {
+      _userSequence.add(color);
     });
   }
 
   void _submitAnswer() {
-    if (_selectedAnswer == null) return;
+    if (_userSequence.length != _sequence.length) return;
 
-    _answeredCorrectly = _selectedAnswer == _correctAnswer;
+    _answeredCorrectly = true;
+    for (int i = 0; i < _sequence.length; i++) {
+      if (_userSequence[i] != _sequence[i]) {
+        _answeredCorrectly = false;
+        break;
+      }
+    }
+
     final score = _answeredCorrectly ? 100 : 0;
     _scores.add(score);
     _totalScore += score;
 
     setState(() {
+      _acceptingInput = false;
       _showingResult = true;
     });
 
@@ -514,6 +468,7 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
 
   void _endGame() {
     _gameTimer?.cancel();
+    _sequenceTimer?.cancel();
 
     setState(() {
       _gameEnded = true;
@@ -551,22 +506,4 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
       ),
     );
   }
-}
-
-class VisualItem {
-  final String shape;
-  final Color color;
-  final double x;
-  final double y;
-  final bool isTarget;
-  bool found;
-
-  VisualItem({
-    required this.shape,
-    required this.color,
-    required this.x,
-    required this.y,
-    required this.isTarget,
-    this.found = false,
-  });
 }

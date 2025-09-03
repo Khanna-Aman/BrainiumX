@@ -3,15 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/providers/providers.dart';
-import 'core/theme/app_theme.dart';
 
 import 'features/splash/splash_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/workout/workout_screen.dart';
 import 'features/games/game_screen.dart';
+import 'features/games/difficulty_selection_screen.dart';
 
 import 'features/settings/settings_screen.dart';
+import 'features/help/scoring_help_screen.dart';
+import 'features/help/rating_help_screen.dart';
 import 'data/models/models.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -51,19 +53,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const WorkoutScreen(),
       ),
       GoRoute(
-        path: '/game/:id',
+        path: '/difficulty/:id',
         builder: (context, state) {
           final gameIdStr = state.pathParameters['id']!;
           final gameId = GameId.values.firstWhere(
             (g) => g.name == gameIdStr,
             orElse: () => GameId.speedTap,
           );
-          return GameScreen(gameId: gameId);
+          return DifficultySelectionScreen(gameId: gameId);
+        },
+      ),
+      GoRoute(
+        path: '/game/:id',
+        builder: (context, state) {
+          final gameIdStr = state.pathParameters['id']!;
+          final difficultyStr = state.uri.queryParameters['difficulty'];
+          final gameId = GameId.values.firstWhere(
+            (g) => g.name == gameIdStr,
+            orElse: () => GameId.speedTap,
+          );
+
+          DifficultyLevel? difficulty;
+          if (difficultyStr != null) {
+            difficulty = DifficultyLevel.values.firstWhere(
+              (d) => d.name == difficultyStr,
+              orElse: () => DifficultyLevel.medium,
+            );
+          }
+
+          return GameScreen(gameId: gameId, difficulty: difficulty);
         },
       ),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/scoring-help',
+        builder: (context, state) => const ScoringHelpScreen(),
+      ),
+      GoRoute(
+        path: '/rating-help',
+        builder: (context, state) => const RatingHelpScreen(),
       ),
     ],
   );
@@ -75,12 +106,26 @@ class BrainiumXApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final theme = ref.watch(themeProvider);
 
     return MaterialApp.router(
       title: 'BrainiumX - Brain Training Games',
-      theme: AppTheme.lightTheme,
+      theme: theme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Ensure proper handling of system UI overlays
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            // Ensure text scaling doesn't break layouts
+            textScaler: MediaQuery.of(context).textScaler.clamp(
+                  minScaleFactor: 0.8,
+                  maxScaleFactor: 1.2,
+                ),
+          ),
+          child: child ?? const SizedBox(),
+        );
+      },
     );
   }
 }

@@ -6,12 +6,16 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
+import '../../../core/utils/difficulty_manager.dart';
+import '../../../core/utils/game_difficulty_config.dart';
+import '../difficulty_selection_screen.dart' as difficulty_screen;
 import '../../../core/services/audio_service.dart';
 
 class SpeedTapGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const SpeedTapGame({super.key, required this.gameId});
+  const SpeedTapGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<SpeedTapGame> createState() => _SpeedTapGameState();
@@ -42,6 +46,38 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getSpeedTapConfig(widget.difficulty!);
+      _totalTrials = difficultyConfig.gameSpecific['targetCount'] as int;
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    } else {
+      // Fallback to rating-based configuration
+      final gameConfigs = ref.read(gameConfigsProvider);
+      final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+      final rating = config.difficultyRating;
+
+      // Use the new difficulty manager
+      final difficultyConfig = DifficultyManager.getSpeedTapConfig(rating);
+
+      _totalTrials = difficultyConfig.totalTrials;
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    }
+  }
+
+  String _getLastReactionTimeText() {
+    if (_reactionTimes.isEmpty) {
+      return 'React Time: --';
+    }
+    final lastTime = _reactionTimes.last;
+    return 'Last: ${lastTime}ms';
   }
 
   @override
@@ -104,9 +140,10 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
   }
 
   Widget _buildGameArea() {
-    Color backgroundColor = Colors.grey[300]!;
+    Color backgroundColor =
+        Theme.of(context).colorScheme.surfaceContainerHighest;
     String message = 'Wait...';
-    Color textColor = Colors.black;
+    Color textColor = Theme.of(context).colorScheme.onSurface;
 
     if (_showStimulus) {
       backgroundColor = Colors.green;
@@ -133,7 +170,7 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
               Text('Time: $_remainingTime s',
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold)),
-              Text('Score: ${_totalScore.toInt()}',
+              Text(_getLastReactionTimeText(),
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold)),
             ],
@@ -169,6 +206,8 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
     final avgReactionTime = _reactionTimes.isNotEmpty
         ? _reactionTimes.reduce((a, b) => a + b) / _reactionTimes.length
         : 0.0;
+    final (congratsMessage, encouragementMessage) =
+        _getCongratulationsMessage(avgReactionTime, accuracy);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -178,8 +217,17 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
           const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
           const SizedBox(height: 24),
           Text(
-            'Game Complete!',
+            congratsMessage,
             style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            encouragementMessage,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           Card(
@@ -242,8 +290,16 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
       _waitingForTap = false;
     });
 
-    // Random delay between 1-4 seconds
-    final delay = 1000 + _random.nextInt(3000);
+    // Get difficulty configuration for wait time
+    final gameConfigs = ref.read(gameConfigsProvider);
+    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+    final rating = config.difficultyRating;
+    final difficultyConfig = DifficultyManager.getSpeedTapConfig(rating);
+
+    // Random delay based on difficulty
+    final delayRange =
+        difficultyConfig.maxWaitTime - difficultyConfig.minWaitTime;
+    final delay = difficultyConfig.minWaitTime + _random.nextInt(delayRange);
 
     _stimulusTimer = Timer(Duration(milliseconds: delay), () {
       if (mounted && !_gameEnded) {
@@ -306,11 +362,17 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
         ? _reactionTimes.reduce((a, b) => a + b) / _reactionTimes.length
         : 0.0;
 
+    // For Speed Tap, use reaction time as the score (lower is better)
+    // We'll invert it so that lower reaction times give higher scores for the rating system
+    final reactionTimeScore = avgReactionTime > 0
+        ? (1000 - avgReactionTime).clamp(0, 1000).toDouble()
+        : 0.0;
+
     final result = SessionResult(
       sessionId:
           ref.read(sessionProvider).currentSessionId ?? const Uuid().v4(),
       gameId: widget.gameId,
-      score: _totalScore,
+      score: reactionTimeScore, // Use reaction time-based score
       accuracy: accuracy,
       timestamp: DateTime.now(),
       reactionTime: avgReactionTime,
@@ -330,5 +392,41 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
         ],
       ),
     );
+  }
+
+  (String, String) _getCongratulationsMessage(
+      double avgReactionTime, double accuracy) {
+    // For Speed Tap, focus on reaction time (lower is better)
+    if (avgReactionTime <= 200 && accuracy >= 0.9) {
+      return (
+        'Lightning Fast! ⚡',
+        'Incredible reflexes! You\'re a speed demon!'
+      );
+    } else if (avgReactionTime <= 250 && accuracy >= 0.8) {
+      return (
+        'Super Quick! 🚀',
+        'Amazing speed! Your reflexes are outstanding!'
+      );
+    } else if (avgReactionTime <= 300 && accuracy >= 0.7) {
+      return (
+        'Great Reflexes! 🎯',
+        'Excellent reaction time! You\'re getting faster!'
+      );
+    } else if (avgReactionTime <= 400 && accuracy >= 0.6) {
+      return (
+        'Good Speed! 👍',
+        'Nice reflexes! Keep practicing to get even faster!'
+      );
+    } else if (accuracy >= 0.8) {
+      return (
+        'Accurate Tapper! 🎯',
+        'Great accuracy! Focus on speed for even better results!'
+      );
+    } else {
+      return (
+        'Keep Practicing! 💪',
+        'Your reflexes will improve with practice! Stay focused!'
+      );
+    }
   }
 }

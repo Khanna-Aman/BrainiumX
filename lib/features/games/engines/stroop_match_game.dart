@@ -7,11 +7,14 @@ import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
 import '../../../core/services/audio_service.dart';
+import '../../../core/utils/game_difficulty_config.dart';
+import '../difficulty_selection_screen.dart' as difficulty_screen;
 
 class StroopMatchGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const StroopMatchGame({super.key, required this.gameId});
+  const StroopMatchGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<StroopMatchGame> createState() => _StroopMatchGameState();
@@ -48,6 +51,19 @@ class _StroopMatchGameState extends ConsumerState<StroopMatchGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getStroopMatchConfig(widget.difficulty!);
+      _totalTrials = difficultyConfig.gameSpecific['trials'] as int;
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    }
+    // If no difficulty specified, use default values (already set)
   }
 
   @override
@@ -75,7 +91,8 @@ class _StroopMatchGameState extends ConsumerState<StroopMatchGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.psychology, size: 64, color: Colors.purple),
+          Icon(Icons.psychology,
+              size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             'Stroop Match',
@@ -192,7 +209,8 @@ class _StroopMatchGameState extends ConsumerState<StroopMatchGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+          Icon(Icons.emoji_events,
+              size: 64, color: Theme.of(context).colorScheme.tertiary),
           const SizedBox(height: 24),
           Text(
             'Game Complete!',

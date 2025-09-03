@@ -9,8 +9,9 @@ import '../../../core/utils/scoring_engine.dart';
 
 class WordChainGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final dynamic difficulty;
 
-  const WordChainGame({super.key, required this.gameId});
+  const WordChainGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<WordChainGame> createState() => _WordChainGameState();
@@ -152,7 +153,8 @@ class _WordChainGameState extends ConsumerState<WordChainGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.link, size: 64, color: Colors.cyan),
+          Icon(Icons.link,
+              size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             'Word Chain',
@@ -218,10 +220,10 @@ class _WordChainGameState extends ConsumerState<WordChainGame> {
               children: [
                 Text(
                   'Category: $_currentCategory',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue),
+                      color: Theme.of(context).colorScheme.primary),
                 ),
                 const SizedBox(height: 30),
 
@@ -240,9 +242,11 @@ class _WordChainGameState extends ConsumerState<WordChainGame> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.blue[100],
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.blue),
+                            border: Border.all(
+                                color: Theme.of(context).colorScheme.primary),
                           ),
                           child: Text(
                             word,
@@ -255,9 +259,12 @@ class _WordChainGameState extends ConsumerState<WordChainGame> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey),
+                        border: Border.all(
+                            color: Theme.of(context).colorScheme.outline),
                       ),
                       child: const Text(
                         '?',
@@ -310,7 +317,8 @@ class _WordChainGameState extends ConsumerState<WordChainGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+          Icon(Icons.emoji_events,
+              size: 64, color: Theme.of(context).colorScheme.tertiary),
           const SizedBox(height: 24),
           Text(
             'Game Complete!',

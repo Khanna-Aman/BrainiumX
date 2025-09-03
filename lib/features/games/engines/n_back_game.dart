@@ -6,11 +6,15 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
+import '../../../core/utils/difficulty_manager.dart';
+import '../../../core/utils/game_difficulty_config.dart';
+import '../difficulty_selection_screen.dart' as difficulty_screen;
 
 class NBackGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const NBackGame({super.key, required this.gameId});
+  const NBackGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<NBackGame> createState() => _NBackGameState();
@@ -27,10 +31,10 @@ class _NBackGameState extends ConsumerState<NBackGame> {
   bool _canRespond = false;
 
   int _currentTick = 0;
-  int _totalTicks = 30;
-  int _timeLimit = 90;
-  int _remainingTime = 90;
-  int _nLevel = 2; // 2-back
+  int _totalTicks = 15; // Reduced from 30 to 15
+  int _timeLimit = 60; // Reduced from 90 to 60 seconds
+  int _remainingTime = 60;
+  int _nLevel = 1; // Changed to 1-back
 
   List<int> _sequence = [];
   List<bool> _responses = [];
@@ -43,6 +47,30 @@ class _NBackGameState extends ConsumerState<NBackGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getNBackConfig(widget.difficulty!);
+      _totalTicks = difficultyConfig.gameSpecific['trials'] as int;
+      _timeLimit = difficultyConfig.timeLimit;
+      _nLevel = difficultyConfig.gameSpecific['nLevel'] as int;
+      _remainingTime = _timeLimit;
+    } else {
+      // Fallback to rating-based configuration
+      final gameConfigs = ref.read(gameConfigsProvider);
+      final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+      final rating = config.difficultyRating;
+      final difficultyConfig = DifficultyManager.getNBackConfig(rating);
+
+      _totalTicks = difficultyConfig.totalTicks;
+      _timeLimit = difficultyConfig.timeLimit;
+      _nLevel = difficultyConfig.nLevel;
+      _remainingTime = _timeLimit;
+    }
   }
 
   @override
@@ -71,7 +99,8 @@ class _NBackGameState extends ConsumerState<NBackGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.memory, size: 64, color: Colors.purple),
+          Icon(Icons.memory,
+              size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             'N-Back ($_nLevel-Back)',
@@ -150,8 +179,14 @@ class _NBackGameState extends ConsumerState<NBackGame> {
 
                     return Container(
                       decoration: BoxDecoration(
-                        color: isActive ? Colors.blue : Colors.grey[300],
-                        border: Border.all(color: Colors.black, width: 2),
+                        color: isActive
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                        border: Border.all(
+                            color: Theme.of(context).colorScheme.outline,
+                            width: 2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     );
@@ -161,7 +196,7 @@ class _NBackGameState extends ConsumerState<NBackGame> {
 
               const SizedBox(height: 40),
 
-              if (_canRespond)
+              if (_canRespond && _currentTick > _nLevel)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -189,6 +224,9 @@ class _NBackGameState extends ConsumerState<NBackGame> {
                     ),
                   ],
                 ),
+
+              // Extra bottom padding to prevent navigation button overlap
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
           ),
         ),
@@ -220,7 +258,8 @@ class _NBackGameState extends ConsumerState<NBackGame> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+          Icon(Icons.emoji_events,
+              size: 64, color: Theme.of(context).colorScheme.tertiary),
           const SizedBox(height: 24),
           Text(
             'Game Complete!',
@@ -232,11 +271,11 @@ class _NBackGameState extends ConsumerState<NBackGame> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _ResultRow('Score', _totalScore.toInt().toString()),
-                  _ResultRow('Accuracy', '${(accuracy * 100).toInt()}%'),
-                  _ResultRow('Hits', hits.toString()),
-                  _ResultRow('Misses', misses.toString()),
-                  _ResultRow('False Alarms', falseAlarms.toString()),
+                  _resultRow('Score', _totalScore.toInt().toString()),
+                  _resultRow('Accuracy', '${(accuracy * 100).toInt()}%'),
+                  _resultRow('Hits', hits.toString()),
+                  _resultRow('Misses', misses.toString()),
+                  _resultRow('False Alarms', falseAlarms.toString()),
                 ],
               ),
             ),
@@ -304,8 +343,8 @@ class _NBackGameState extends ConsumerState<NBackGame> {
         _canRespond = true;
       });
 
-      // Allow response for 2 seconds
-      Timer(const Duration(seconds: 2), () {
+      // Allow response for 3 seconds (increased from 2)
+      Timer(const Duration(seconds: 3), () {
         if (_responses.length <= _currentTick) {
           _responses.add(false); // No response = false
         }
@@ -316,7 +355,7 @@ class _NBackGameState extends ConsumerState<NBackGame> {
   }
 
   void _handleResponse(bool response) {
-    if (_responses.length <= _currentTick) {
+    if (_responses.length <= _currentTick && _canRespond) {
       _responses.add(response);
 
       final correct = _correctAnswers[_currentTick];
@@ -334,6 +373,12 @@ class _NBackGameState extends ConsumerState<NBackGame> {
 
       setState(() {
         _canRespond = false;
+      });
+
+      // Advance to next tick immediately after response
+      _currentTick++;
+      Timer(const Duration(milliseconds: 500), () {
+        _nextTick();
       });
     }
   }
@@ -366,7 +411,7 @@ class _NBackGameState extends ConsumerState<NBackGame> {
     ref.read(sessionProvider.notifier).recordGameResult(result);
   }
 
-  Widget _ResultRow(String label, String value) {
+  Widget _resultRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(

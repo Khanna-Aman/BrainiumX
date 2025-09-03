@@ -28,7 +28,7 @@ class GameIdAdapter extends TypeAdapter<GameId> {
       case 6:
         return GameId.goNoGo;
       case 7:
-        return GameId.symbolSearch;
+        return GameId.colorMatch;
       case 8:
         return GameId.arithmeticSprint;
       case 9:
@@ -66,7 +66,7 @@ class GameIdAdapter extends TypeAdapter<GameId> {
       case GameId.goNoGo:
         writer.writeByte(6);
         break;
-      case GameId.symbolSearch:
+      case GameId.colorMatch:
         writer.writeByte(7);
         break;
       case GameId.arithmeticSprint:

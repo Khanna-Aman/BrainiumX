@@ -13,7 +13,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.brainiumx.brain_game"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -29,8 +29,8 @@ android {
         applicationId = "com.brainiumx.brain_game"
         // Support devices from Android 5.0 (API 21) to latest
         minSdk = 21
-        targetSdk = 34
-        compileSdk = 34
+        targetSdk = 35
+        compileSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 

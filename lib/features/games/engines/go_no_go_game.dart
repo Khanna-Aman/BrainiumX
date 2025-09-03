@@ -9,8 +9,9 @@ import '../../../core/utils/scoring_engine.dart';
 
 class GoNoGoGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final dynamic difficulty;
 
-  const GoNoGoGame({super.key, required this.gameId});
+  const GoNoGoGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<GoNoGoGame> createState() => _GoNoGoGameState();

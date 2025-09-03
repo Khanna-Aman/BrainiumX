@@ -9,8 +9,9 @@ import '../../../core/utils/scoring_engine.dart';
 
 class TrailConnectGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final dynamic difficulty;
 
-  const TrailConnectGame({super.key, required this.gameId});
+  const TrailConnectGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<TrailConnectGame> createState() => _TrailConnectGameState();

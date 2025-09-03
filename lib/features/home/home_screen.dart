@@ -58,6 +58,21 @@ class HomeScreen extends ConsumerWidget {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.help_outline,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              onPressed: () => context.push('/scoring-help'),
+              tooltip: 'Scoring Help',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -71,34 +86,41 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Quick Play Section
-            Text(
-              'Quick Play',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.5,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Quick Play Section
+              Text(
+                'Quick Play',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              itemCount: GameId.values.length,
-              itemBuilder: (context, index) {
-                final gameId = GameId.values[index];
-                return _GameCard(gameId: gameId);
-              },
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.5,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: GameId.values.length,
+                itemBuilder: (context, index) {
+                  final gameId = GameId.values[index];
+                  return _GameCard(gameId: gameId);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -137,7 +159,7 @@ class _GameCard extends ConsumerWidget {
 
     return Card(
       child: InkWell(
-        onTap: () => context.push('/game/${gameId.name}'),
+        onTap: () => context.push('/difficulty/${gameId.name}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),

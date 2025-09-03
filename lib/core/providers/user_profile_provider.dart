@@ -44,8 +44,19 @@ class UserProfileNotifier extends StateNotifier<UserProfile?> {
 
   Future<void> updateTheme(String theme) async {
     if (state != null) {
-      state!.preferredTheme = theme;
-      await updateProfile(state!);
+      final updatedProfile = UserProfile(
+        id: state!.id,
+        displayName: state!.displayName,
+        dob: state!.dob,
+        preferredTheme: theme,
+      );
+
+      // Clear the old profile and save the new one
+      final box = Hive.box<UserProfile>('user_profile');
+      await box.clear();
+      await box.add(updatedProfile);
+
+      state = updatedProfile;
     }
   }
 }

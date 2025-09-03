@@ -6,11 +6,14 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
+import '../../../core/utils/game_difficulty_config.dart';
+import '../difficulty_selection_screen.dart' as difficulty_screen;
 
 class SpatialRotationGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const SpatialRotationGame({super.key, required this.gameId});
+  const SpatialRotationGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<SpatialRotationGame> createState() =>
@@ -41,6 +44,19 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getSpatialRotationConfig(widget.difficulty!);
+      _totalTrials = difficultyConfig.gameSpecific['trials'] as int;
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    }
+    // If no difficulty specified, use default values (already set)
   }
 
   @override

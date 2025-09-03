@@ -9,8 +9,9 @@ import '../../../core/utils/scoring_engine.dart';
 
 class PatternMatrixGame extends ConsumerStatefulWidget {
   final GameId gameId;
+  final dynamic difficulty;
 
-  const PatternMatrixGame({super.key, required this.gameId});
+  const PatternMatrixGame({super.key, required this.gameId, this.difficulty});
 
   @override
   ConsumerState<PatternMatrixGame> createState() => _PatternMatrixGameState();
