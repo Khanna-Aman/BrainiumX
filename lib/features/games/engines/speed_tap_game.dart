@@ -7,15 +7,12 @@ import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
 import '../../../core/utils/difficulty_manager.dart';
-import '../../../core/utils/game_difficulty_config.dart';
-import '../difficulty_selection_screen.dart' as difficulty_screen;
 import '../../../core/services/audio_service.dart';
 
 class SpeedTapGame extends ConsumerStatefulWidget {
   final GameId gameId;
-  final difficulty_screen.DifficultyLevel? difficulty;
 
-  const SpeedTapGame({super.key, required this.gameId, this.difficulty});
+  const SpeedTapGame({super.key, required this.gameId});
 
   @override
   ConsumerState<SpeedTapGame> createState() => _SpeedTapGameState();
@@ -50,26 +47,17 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
   }
 
   void _configureDifficulty() {
-    if (widget.difficulty != null) {
-      // Use difficulty-based configuration
-      final difficultyConfig =
-          DifficultyConfigProvider.getSpeedTapConfig(widget.difficulty!);
-      _totalTrials = difficultyConfig.gameSpecific['targetCount'] as int;
-      _timeLimit = difficultyConfig.timeLimit;
-      _remainingTime = _timeLimit;
-    } else {
-      // Fallback to rating-based configuration
-      final gameConfigs = ref.read(gameConfigsProvider);
-      final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
-      final rating = config.difficultyRating;
+    // Use rating-based configuration
+    final gameConfigs = ref.read(gameConfigsProvider);
+    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
+    final rating = config.difficultyRating;
 
-      // Use the new difficulty manager
-      final difficultyConfig = DifficultyManager.getSpeedTapConfig(rating);
+    // Use the new difficulty manager
+    final difficultyConfig = DifficultyManager.getSpeedTapConfig(rating);
 
-      _totalTrials = difficultyConfig.totalTrials;
-      _timeLimit = difficultyConfig.timeLimit;
-      _remainingTime = _timeLimit;
-    }
+    _totalTrials = difficultyConfig.totalTrials;
+    _timeLimit = difficultyConfig.timeLimit;
+    _remainingTime = _timeLimit;
   }
 
   String _getLastReactionTimeText() {
@@ -181,6 +169,12 @@ class _SpeedTapGameState extends ConsumerState<SpeedTapGame> {
         Expanded(
           child: GestureDetector(
             onTap: _handleTap,
+            onPanEnd: (details) {
+              // Any swipe gesture also counts as a tap for speed
+              if (details.velocity.pixelsPerSecond.distance > 200) {
+                _handleTap();
+              }
+            },
             child: Container(
               width: double.infinity,
               color: backgroundColor,

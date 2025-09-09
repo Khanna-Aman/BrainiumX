@@ -31,6 +31,7 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
   int _totalTrials = 15;
   int _timeLimit = 120;
   int _remainingTime = 120;
+  int _gridSize = 4;
 
   List<bool> _responses = [];
   double _totalScore = 0;
@@ -55,6 +56,10 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
       _totalTrials = difficultyConfig.gameSpecific['trials'] as int;
       _timeLimit = difficultyConfig.timeLimit;
       _remainingTime = _timeLimit;
+
+      // Set grid size based on difficulty
+      final gridSize = difficultyConfig.gameSpecific['gridSize'] as int;
+      _gridSize = gridSize;
     }
     // If no difficulty specified, use default values (already set)
   }
@@ -203,15 +208,15 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
           width: 120,
           height: 120,
           child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _gridSize,
               crossAxisSpacing: 2,
               mainAxisSpacing: 2,
             ),
-            itemCount: 16,
+            itemCount: _gridSize * _gridSize,
             itemBuilder: (context, index) {
-              final row = index ~/ 4;
-              final col = index % 4;
+              final row = index ~/ _gridSize;
+              final col = index % _gridSize;
               final isActive = row < shape.length &&
                   col < shape[row].length &&
                   shape[row][col];
@@ -289,9 +294,9 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
   }
 
   void _generateShapes() {
-    // Generate a random 4x4 shape
-    _originalShape =
-        List.generate(4, (i) => List.generate(4, (j) => _random.nextBool()));
+    // Generate a random shape based on grid size
+    _originalShape = List.generate(
+        _gridSize, (i) => List.generate(_gridSize, (j) => _random.nextBool()));
 
     // Decide if this should be a correct rotation or different shape
     _isCorrectRotation = _random.nextBool();
@@ -302,8 +307,8 @@ class _SpatialRotationGameState extends ConsumerState<SpatialRotationGame> {
       _rotatedShape = _rotateShape(_originalShape, _rotationAngle);
     } else {
       // Generate a completely different shape
-      _rotatedShape =
-          List.generate(4, (i) => List.generate(4, (j) => _random.nextBool()));
+      _rotatedShape = List.generate(_gridSize,
+          (i) => List.generate(_gridSize, (j) => _random.nextBool()));
     }
 
     setState(() {});

@@ -6,9 +6,9 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
-import '../../../core/utils/difficulty_manager.dart';
-import '../../../core/utils/question_tracker.dart';
 import '../../../core/utils/game_difficulty_config.dart';
+import '../../../core/utils/question_tracker.dart';
+
 import '../difficulty_selection_screen.dart' as difficulty_screen;
 
 class ArithmeticSprintGame extends ConsumerStatefulWidget {
@@ -54,14 +54,16 @@ class _ArithmeticSprintGameState extends ConsumerState<ArithmeticSprintGame>
   }
 
   void _configureDifficulty() {
-    final gameConfigs = ref.read(gameConfigsProvider);
-    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
-    final rating = config.difficultyRating;
-    final difficultyConfig = DifficultyManager.getArithmeticConfig(rating);
-
-    _totalQuestions = difficultyConfig.totalQuestions;
-    _timeLimit = difficultyConfig.timeLimit;
-    _remainingTime = _timeLimit;
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getArithmeticSprintConfig(
+              widget.difficulty!);
+      _totalQuestions = difficultyConfig.rounds; // Use rounds as questions
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    }
+    // If no difficulty specified, use default values (already set)
   }
 
   @override
@@ -248,11 +250,32 @@ class _ArithmeticSprintGameState extends ConsumerState<ArithmeticSprintGame>
   }
 
   void _generateQuestion() async {
-    // Get difficulty configuration
-    final gameConfigs = ref.read(gameConfigsProvider);
-    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
-    final rating = config.difficultyRating;
-    final difficultyConfig = DifficultyManager.getArithmeticConfig(rating);
+    // Use simple difficulty-based configuration
+    int maxNumber;
+    List<String> operations;
+
+    switch (widget.difficulty) {
+      case difficulty_screen.DifficultyLevel.veryEasy:
+        maxNumber = 20;
+        operations = ['+', '-'];
+        break;
+      case difficulty_screen.DifficultyLevel.easy:
+        maxNumber = 50;
+        operations = ['+', '-'];
+        break;
+      case difficulty_screen.DifficultyLevel.medium:
+        maxNumber = 100;
+        operations = ['+', '-', '×'];
+        break;
+      case difficulty_screen.DifficultyLevel.hard:
+        maxNumber = 200;
+        operations = ['+', '-', '×', '÷'];
+        break;
+      default:
+        maxNumber = 50;
+        operations = ['+', '-'];
+        break;
+    }
 
     // Generate unique question using question tracking
     final questionData = await generateUniqueQuestion<Map<String, dynamic>>(
@@ -262,33 +285,29 @@ class _ArithmeticSprintGameState extends ConsumerState<ArithmeticSprintGame>
         question['operation'] as String,
       ),
       () {
-        final operation = difficultyConfig
-            .operations[_random.nextInt(difficultyConfig.operations.length)];
+        final operation = operations[_random.nextInt(operations.length)];
 
         int a, b, correctAnswer;
 
         switch (operation) {
           case '+':
-            a = 1 + _random.nextInt(difficultyConfig.maxNumber);
-            b = 1 + _random.nextInt(difficultyConfig.maxNumber);
+            a = 1 + _random.nextInt(maxNumber);
+            b = 1 + _random.nextInt(maxNumber);
             correctAnswer = a + b;
             break;
           case '-':
-            a = difficultyConfig.maxNumber ~/ 2 +
-                _random.nextInt(difficultyConfig.maxNumber ~/ 2);
+            a = maxNumber ~/ 2 + _random.nextInt(maxNumber ~/ 2);
             b = 1 + _random.nextInt(a);
             correctAnswer = a - b;
             break;
           case '×':
-            final maxFactor =
-                (difficultyConfig.maxNumber / 10).ceil().clamp(2, 12);
+            final maxFactor = (maxNumber / 10).ceil().clamp(2, 12);
             a = 2 + _random.nextInt(maxFactor);
             b = 2 + _random.nextInt(maxFactor);
             correctAnswer = a * b;
             break;
           case '÷':
-            final maxFactor =
-                (difficultyConfig.maxNumber / 10).ceil().clamp(2, 12);
+            final maxFactor = (maxNumber / 10).ceil().clamp(2, 12);
             correctAnswer = 2 + _random.nextInt(maxFactor);
             b = 2 + _random.nextInt(maxFactor);
             a = correctAnswer * b;

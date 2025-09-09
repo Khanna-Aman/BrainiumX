@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/providers/providers.dart';
+import 'core/theme/app_theme.dart';
 
 import 'features/splash/splash_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -14,6 +16,9 @@ import 'features/games/difficulty_selection_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/help/scoring_help_screen.dart';
 import 'features/help/rating_help_screen.dart';
+import 'features/help/elo_help_screen.dart';
+import 'features/help/games_help_screen.dart';
+import 'features/help/domains_help_screen.dart';
 import 'data/models/models.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -60,6 +65,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             (g) => g.name == gameIdStr,
             orElse: () => GameId.speedTap,
           );
+
+          // Speed Tap bypasses difficulty selection
+          if (gameId == GameId.speedTap) {
+            return GameScreen(gameId: gameId, difficulty: null);
+          }
+
           return DifficultySelectionScreen(gameId: gameId);
         },
       ),
@@ -96,6 +107,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/rating-help',
         builder: (context, state) => const RatingHelpScreen(),
       ),
+      GoRoute(
+        path: '/elo-help',
+        builder: (context, state) => const EloHelpScreen(),
+      ),
+      GoRoute(
+        path: '/games-help',
+        builder: (context, state) => const GamesHelpScreen(),
+      ),
+      GoRoute(
+        path: '/domains-help',
+        builder: (context, state) => const DomainsHelpScreen(),
+      ),
     ],
   );
 });
@@ -107,6 +130,14 @@ class BrainiumXApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final theme = ref.watch(themeProvider);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    // Set system UI overlay style based on theme
+    SystemChrome.setSystemUIOverlayStyle(
+      isDarkMode
+          ? AppTheme.darkSystemUiOverlayStyle
+          : AppTheme.lightSystemUiOverlayStyle,
+    );
 
     return MaterialApp.router(
       title: 'BrainiumX - Brain Training Games',
@@ -114,7 +145,7 @@ class BrainiumXApp extends ConsumerWidget {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        // Ensure proper handling of system UI overlays
+        // Ensure proper handling of system UI overlays and text scaling
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
             // Ensure text scaling doesn't break layouts

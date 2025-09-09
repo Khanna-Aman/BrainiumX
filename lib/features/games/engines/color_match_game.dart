@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
-import '../../../core/utils/scoring_engine.dart';
+
 import '../../../core/utils/question_tracker.dart';
 import '../../../core/utils/game_difficulty_config.dart';
 import '../difficulty_selection_screen.dart' as difficulty_screen;
@@ -191,6 +191,14 @@ class _ColorMatchGameState extends ConsumerState<ColorMatchGame>
 
                 return GestureDetector(
                   onTap: _acceptingInput ? () => _selectColor(color) : null,
+                  onPanEnd: _acceptingInput
+                      ? (details) {
+                          // Swipe up to select color
+                          if (details.velocity.pixelsPerSecond.dy < -300) {
+                            _selectColor(color);
+                          }
+                        }
+                      : null,
                   child: Container(
                     decoration: BoxDecoration(
                       color: color,

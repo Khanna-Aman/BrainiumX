@@ -58,21 +58,6 @@ class HomeScreen extends ConsumerWidget {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.help_outline,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-              onPressed: () => context.push('/scoring-help'),
-              tooltip: 'Scoring Help',
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),

@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
-import '../../../core/utils/scoring_engine.dart';
+
 import '../../../core/utils/question_tracker.dart';
 import '../../../core/utils/game_difficulty_config.dart';
 import '../difficulty_selection_screen.dart' as difficulty_screen;
@@ -17,10 +18,11 @@ class VisualSearchGame extends ConsumerStatefulWidget {
   const VisualSearchGame({super.key, required this.gameId, this.difficulty});
 
   @override
-  ConsumerState<VisualSearchGame> createState() => _VisualSearchGameState();
+  ConsumerState<VisualSearchGame> createState() =>
+      _ColorAreaComparisonGameState();
 }
 
-class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
+class _ColorAreaComparisonGameState extends ConsumerState<VisualSearchGame>
     with QuestionTrackingMixin {
   @override
   GameId get gameId => widget.gameId;
@@ -38,24 +40,19 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
   List<int> _scores = [];
   double _totalScore = 0;
 
-  List<VisualItem> _items = [];
-  List<String> _availableSymbols = [];
+  // Color area comparison specific variables
+  Map<Color, double> _colorAreas = {};
   String _correctAnswer = '';
   String? _selectedAnswer;
   bool _showingResult = false;
   bool _answeredCorrectly = false;
 
-  final List<String> _allSymbols = ['●', '■', '▲', '◆', '★', '♦', '♠', '♣'];
   final List<Color> _colors = [
     Colors.red,
     Colors.blue,
     Colors.green,
     Colors.orange,
-    Colors.purple,
   ];
-
-  // Track used symbol combinations to prevent repeats
-  Set<String> _usedCombinations = {};
 
   @override
   void initState() {
@@ -68,12 +65,35 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
     if (widget.difficulty != null) {
       // Use difficulty-based configuration
       final difficultyConfig =
-          DifficultyConfigProvider.getVisualSearchConfig(widget.difficulty!);
+          DifficultyConfigProvider.getColorDominanceConfig(widget.difficulty!);
       _totalRounds = difficultyConfig.rounds;
       _timeLimit = difficultyConfig.timeLimit;
       _remainingTime = _timeLimit;
     }
     // If no difficulty specified, use default values (already set)
+  }
+
+  Color _getColorFromString(String colorStr) {
+    switch (colorStr) {
+      case 'Color(0xfff44336)':
+        return Colors.red;
+      case 'Color(0xff2196f3)':
+        return Colors.blue;
+      case 'Color(0xff4caf50)':
+        return Colors.green;
+      case 'Color(0xffff9800)':
+        return Colors.orange;
+      default:
+        return Colors.red;
+    }
+  }
+
+  String _getColorName(Color color) {
+    if (color == Colors.red) return 'Red';
+    if (color == Colors.blue) return 'Blue';
+    if (color == Colors.green) return 'Green';
+    if (color == Colors.orange) return 'Orange';
+    return 'Unknown';
   }
 
   @override
@@ -99,16 +119,16 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.visibility,
+          Icon(Icons.palette,
               size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 24),
           Text(
-            'Visual Search',
+            'Color Area Comparison',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
           Text(
-            'Look at the grid of symbols and identify which symbol appears most frequently.',
+            'Look at the colored areas and identify which color occupies the largest area.',
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -155,7 +175,7 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Which symbol appears MOST frequently?',
+                  'Which COLOR occupies the LARGEST area?',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -167,7 +187,7 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
           ),
         ),
 
-        // Grid of symbols
+        // Color Areas Display
         Expanded(
           child: Container(
             margin: const EdgeInsets.all(16),
@@ -175,35 +195,9 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
               border: Border.all(color: Theme.of(context).colorScheme.outline),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-                childAspectRatio: 1,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                return Container(
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.shape,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: item.color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
+            child: CustomPaint(
+              painter: ColorAreaPainter(_colorAreas),
+              size: Size.infinite,
             ),
           ),
         ),
@@ -215,45 +209,75 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
             child: Column(
               children: [
                 Text(
-                  'Select the symbol that appears most frequently:',
+                  'Select the color that occupies the largest area:',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _availableSymbols.map((symbol) {
-                    final isSelected = _selectedAnswer == symbol;
-                    return GestureDetector(
-                      onTap: () => _selectAnswer(symbol),
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.outline,
-                            width: isSelected ? 3 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            symbol,
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _colors.map((color) {
+                    final colorStr = color.toString();
+                    final isSelected = _selectedAnswer == colorStr;
+                    final colorName = _getColorName(color);
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () => _selectAnswer(colorStr),
+                          onPanEnd: (details) {
+                            // Swipe right to select, swipe left to deselect
+                            if (details.velocity.pixelsPerSecond.dx > 300) {
+                              _selectAnswer(colorStr);
+                            } else if (details.velocity.pixelsPerSecond.dx <
+                                -300) {
+                              _selectAnswer(''); // Deselect
+                            }
+                          },
+                          child: Container(
+                            height: 70,
+                            decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface,
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.outline,
+                                width: isSelected ? 3 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  colorName,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -313,13 +337,37 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
                       ),
                 ),
                 Text(
-                  'The correct answer was "$_correctAnswer"',
+                  'The correct answer was "${_getColorName(_getColorFromString(_correctAnswer))}"',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: _answeredCorrectly
                             ? Theme.of(context).colorScheme.onTertiaryContainer
                             : Theme.of(context).colorScheme.onErrorContainer,
                       ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Area percentages:',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: _answeredCorrectly
+                            ? Theme.of(context).colorScheme.onTertiaryContainer
+                            : Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                ),
+                ..._colorAreas.entries.map((entry) {
+                  final colorName = _getColorName(entry.key);
+                  final percentage = (entry.value * 100).toInt();
+                  return Text(
+                    '$colorName: $percentage%',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: _answeredCorrectly
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .onTertiaryContainer
+                              : Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                  );
+                }),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _nextRound,
@@ -397,91 +445,76 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
   }
 
   void _generateRound() async {
-    _items.clear();
     _selectedAnswer = null;
     _showingResult = false;
 
     // Generate unique round using question tracking
     final roundData = await generateUniqueQuestion<Map<String, dynamic>>(
-      (round) => QuestionKeyGenerator.visualSearchKey(
-        round['symbols'] as List<String>,
-        round['counts'] as Map<String, int>,
-      ),
+      (round) => '${round['colors']}_${round['areas']}',
       () {
-        // Generate 4-5 different symbols for this round
-        final numSymbols = 4 + _random.nextInt(2); // 4 or 5 symbols
-        final symbols =
-            (_allSymbols.toList()..shuffle(_random)).take(numSymbols).toList();
+        // Generate balanced area percentages for each color
+        final areas = <String, double>{};
 
-        // Generate a grid of 64 symbols (8x8)
-        final totalItems = 64;
-        final symbolCounts = <String, int>{};
+        // Start with base areas that ensure all colors are visible
+        final baseAreas = [
+          0.15,
+          0.20,
+          0.25,
+          0.40
+        ]; // Minimum 15% each, one clearly larger
+        baseAreas.shuffle(_random);
 
-        // Ensure each symbol appears at least once
-        for (final symbol in symbols) {
-          symbolCounts[symbol] = 1;
+        // Assign areas to colors
+        for (int i = 0; i < _colors.length; i++) {
+          areas[_colors[i].toString()] = baseAreas[i];
         }
 
-        // Fill remaining slots randomly but ensure one symbol is clearly most frequent
-        final remainingSlots = totalItems - symbols.length;
-        final mostFrequentSymbol = symbols[_random.nextInt(symbols.length)];
+        // Add some random variation while keeping proportions
+        final variation = 0.05; // 5% variation
+        areas.updateAll((key, value) {
+          final randomVariation = (_random.nextDouble() - 0.5) * variation;
+          return (value + randomVariation)
+              .clamp(0.1, 0.6); // Keep between 10% and 60%
+        });
 
-        // Give the most frequent symbol extra occurrences
-        final extraOccurrences = 8 + _random.nextInt(5); // 8-12 extra
-        symbolCounts[mostFrequentSymbol] =
-            (symbolCounts[mostFrequentSymbol] ?? 0) + extraOccurrences;
-
-        // Distribute remaining slots among other symbols
-        final remainingAfterMostFrequent = remainingSlots - extraOccurrences;
-        for (int i = 0; i < remainingAfterMostFrequent; i++) {
-          final symbol = symbols[_random.nextInt(symbols.length)];
-          symbolCounts[symbol] = (symbolCounts[symbol] ?? 0) + 1;
-        }
+        // Normalize to ensure total is exactly 1.0
+        final total = areas.values.reduce((a, b) => a + b);
+        areas.updateAll((key, value) => value / total);
 
         return {
-          'symbols': symbols,
-          'counts': symbolCounts,
+          'colors': _colors.map((c) => c.toString()).toList(),
+          'areas': areas,
         };
       },
     );
 
-    _availableSymbols = roundData['symbols'] as List<String>;
-    final symbolCounts = roundData['counts'] as Map<String, int>;
+    final colorAreas = roundData['areas'] as Map<String, double>;
 
-    // Find the most frequent symbol
+    // Convert string keys back to Color objects
+    _colorAreas.clear();
+    colorAreas.forEach((colorStr, area) {
+      final color = _getColorFromString(colorStr);
+      _colorAreas[color] = area;
+    });
+
+    // Color areas generated
+
+    // Find the color with the largest area
     _correctAnswer = '';
-    int maxCount = 0;
-    symbolCounts.forEach((symbol, count) {
-      if (count > maxCount) {
-        maxCount = count;
-        _correctAnswer = symbol;
+    double maxArea = 0;
+    _colorAreas.forEach((color, area) {
+      if (area > maxArea) {
+        maxArea = area;
+        _correctAnswer = color.toString();
       }
     });
-
-    // Generate visual items based on counts
-    _items.clear();
-    symbolCounts.forEach((symbol, count) {
-      for (int i = 0; i < count; i++) {
-        final color = _colors[_random.nextInt(_colors.length)];
-        _items.add(VisualItem(
-          shape: symbol,
-          color: color,
-          x: 0,
-          y: 0,
-          isTarget: false,
-        ));
-      }
-    });
-
-    // Shuffle the items to randomize positions
-    _items.shuffle(_random);
 
     setState(() {});
   }
 
-  void _selectAnswer(String symbol) {
+  void _selectAnswer(String colorStr) {
     setState(() {
-      _selectedAnswer = symbol;
+      _selectedAnswer = colorStr;
     });
   }
 
@@ -553,20 +586,54 @@ class _VisualSearchGameState extends ConsumerState<VisualSearchGame>
   }
 }
 
-class VisualItem {
-  final String shape;
-  final Color color;
-  final double x;
-  final double y;
-  final bool isTarget;
-  bool found;
+class ColorAreaPainter extends CustomPainter {
+  final Map<Color, double> colorAreas;
 
-  VisualItem({
-    required this.shape,
-    required this.color,
-    required this.x,
-    required this.y,
-    required this.isTarget,
-    this.found = false,
-  });
+  ColorAreaPainter(this.colorAreas);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+
+    // Fallback: if no color areas, show default pattern
+    if (colorAreas.isEmpty) {
+      // Draw 4 equal sections with default colors
+      final colors = [Colors.red, Colors.blue, Colors.green, Colors.orange];
+      final sectionHeight = size.height / 4;
+
+      for (int i = 0; i < 4; i++) {
+        paint.color = colors[i];
+        canvas.drawRect(
+          Rect.fromLTWH(0, i * sectionHeight, size.width, sectionHeight),
+          paint,
+        );
+      }
+      return;
+    }
+
+    final areas = colorAreas.entries.toList();
+
+    // Ensure we have exactly 4 colors
+    if (areas.length != 4) return;
+
+    // Simple approach: divide screen into 4 horizontal sections
+    double currentY = 0;
+
+    for (int i = 0; i < areas.length; i++) {
+      final entry = areas[i];
+      final sectionHeight = size.height * entry.value;
+
+      paint.color = entry.key;
+      canvas.drawRect(
+        Rect.fromLTWH(0, currentY, size.width, sectionHeight),
+        paint,
+      );
+      currentY += sectionHeight;
+    }
+  }
+
+  @override
+  bool shouldRepaint(ColorAreaPainter oldDelegate) {
+    return colorAreas != oldDelegate.colorAreas;
+  }
 }

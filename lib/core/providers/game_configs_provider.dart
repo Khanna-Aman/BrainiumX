@@ -63,13 +63,12 @@ class GameConfigsNotifier extends StateNotifier<List<GameConfig>> {
         await updateGameConfig(state[configIndex]);
         // Trigger state update to notify listeners
         state = [...state];
-        print('Updated high score for $gameId: $newScore'); // Debug log
+        // High score updated successfully
       } else {
-        print(
-            'Score $newScore not higher than current best ${state[configIndex].highScore} for $gameId'); // Debug log
+        // Score not higher than current best
       }
     } else {
-      print('Config not found for $gameId'); // Debug log
+      // Config not found for gameId
     }
   }
 

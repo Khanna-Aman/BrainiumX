@@ -68,7 +68,7 @@ extension GameIdExtension on GameId {
       case GameId.wordChain:
         return 'Word Chain';
       case GameId.visualSearch:
-        return 'Visual Search';
+        return 'Color Dominance';
     }
   }
 
@@ -97,7 +97,7 @@ extension GameIdExtension on GameId {
       case GameId.wordChain:
         return Icons.link;
       case GameId.visualSearch:
-        return Icons.visibility;
+        return Icons.grid_view;
     }
   }
 
@@ -126,7 +126,7 @@ extension GameIdExtension on GameId {
       case GameId.wordChain:
         return ['verbal', 'flexibility'];
       case GameId.visualSearch:
-        return ['attention', 'speed'];
+        return ['attention', 'visual'];
     }
   }
 }

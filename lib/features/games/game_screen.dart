@@ -14,7 +14,7 @@ import 'engines/color_match_game.dart';
 import 'engines/arithmetic_sprint_game.dart';
 import 'engines/pattern_matrix_game.dart';
 import 'engines/word_chain_game.dart';
-import 'engines/visual_search_game.dart';
+import 'engines/color_dominance_game.dart';
 
 class GameScreen extends ConsumerWidget {
   final GameId gameId;
@@ -41,7 +41,7 @@ class GameScreen extends ConsumerWidget {
   Widget _buildGameWidget() {
     switch (gameId) {
       case GameId.speedTap:
-        return SpeedTapGame(gameId: gameId, difficulty: difficulty);
+        return SpeedTapGame(gameId: gameId);
       case GameId.stroopMatch:
         return StroopMatchGame(gameId: gameId, difficulty: difficulty);
       case GameId.nBack:
@@ -63,7 +63,7 @@ class GameScreen extends ConsumerWidget {
       case GameId.wordChain:
         return WordChainGame(gameId: gameId, difficulty: difficulty);
       case GameId.visualSearch:
-        return VisualSearchGame(gameId: gameId, difficulty: difficulty);
+        return ColorDominanceGame(gameId: gameId, difficulty: difficulty);
     }
   }
 }

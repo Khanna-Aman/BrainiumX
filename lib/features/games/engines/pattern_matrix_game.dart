@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/models.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/utils/scoring_engine.dart';
+import '../../../core/utils/game_difficulty_config.dart';
 
 class PatternMatrixGame extends ConsumerStatefulWidget {
   final GameId gameId;
@@ -42,6 +43,19 @@ class _PatternMatrixGameState extends ConsumerState<PatternMatrixGame> {
   void initState() {
     super.initState();
     _random = Random();
+    _configureDifficulty();
+  }
+
+  void _configureDifficulty() {
+    if (widget.difficulty != null) {
+      // Use difficulty-based configuration
+      final difficultyConfig =
+          DifficultyConfigProvider.getPatternMatrixConfig(widget.difficulty!);
+      _totalPuzzles = difficultyConfig.rounds;
+      _timeLimit = difficultyConfig.timeLimit;
+      _remainingTime = _timeLimit;
+    }
+    // If no difficulty specified, use default values (already set)
   }
 
   @override

@@ -43,7 +43,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 30,
           complexity: 0.6,
           gameSpecific: {
@@ -53,7 +53,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 40,
           complexity: 0.8,
           gameSpecific: {
@@ -69,7 +69,7 @@ class DifficultyConfigProvider {
     switch (difficulty) {
       case DifficultyLevel.veryEasy:
         return const GameDifficultyConfig(
-          rounds: 5,
+          rounds: 3,
           timeLimit: 30,
           complexity: 0.2,
           gameSpecific: {
@@ -80,7 +80,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.easy:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 5,
           timeLimit: 45,
           complexity: 0.4,
           gameSpecific: {
@@ -91,7 +91,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 7,
           timeLimit: 60,
           complexity: 0.6,
           gameSpecific: {
@@ -102,7 +102,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 18,
+          rounds: 10,
           timeLimit: 75,
           complexity: 0.8,
           gameSpecific: {
@@ -143,7 +143,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 60,
           complexity: 0.6,
           gameSpecific: {
@@ -155,7 +155,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 75,
           complexity: 0.8,
           gameSpecific: {
@@ -175,58 +175,49 @@ class DifficultyConfigProvider {
       case DifficultyLevel.veryEasy:
         return const GameDifficultyConfig(
           rounds: 3,
-          timeLimit: 45,
+          timeLimit: 60,
           complexity: 0.2,
           gameSpecific: {
             'trials': 6,
-            'rotationAngles': [90, 180],
-            'responseTime': 8000,
+            'gridSize': 3,
+            'rotationAngles': [90],
+            'responseTime': 10000,
           },
         );
       case DifficultyLevel.easy:
         return const GameDifficultyConfig(
           rounds: 5,
-          timeLimit: 60,
+          timeLimit: 75,
           complexity: 0.4,
           gameSpecific: {
             'trials': 8,
-            'rotationAngles': [90, 180, 270],
-            'responseTime': 6000,
+            'gridSize': 4,
+            'rotationAngles': [90, 180],
+            'responseTime': 9000,
           },
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
-          timeLimit: 90,
+          rounds: 7,
+          timeLimit: 80,
           complexity: 0.6,
           gameSpecific: {
             'trials': 12,
-            'rotationAngles': [45, 90, 135, 180, 225, 270],
-            'responseTime': 5000,
+            'gridSize': 4,
+            'rotationAngles': [90, 180, 270],
+            'responseTime': 7000,
           },
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
-          timeLimit: 120,
+          rounds: 10,
+          timeLimit: 80,
           complexity: 0.8,
           gameSpecific: {
             'trials': 16,
-            'rotationAngles': [
-              30,
-              45,
-              60,
-              90,
-              120,
-              135,
-              180,
-              210,
-              225,
-              270,
-              300,
-              330
-            ],
-            'responseTime': 4000,
+            'gridSize': 5,
+            'rotationAngles': [45, 90, 135, 180, 225, 270],
+            'responseTime': 5000,
           },
         );
     }
@@ -238,30 +229,30 @@ class DifficultyConfigProvider {
       case DifficultyLevel.veryEasy:
         return const GameDifficultyConfig(
           rounds: 3,
-          timeLimit: 30,
+          timeLimit: 45,
           complexity: 0.2,
           gameSpecific: {
             'gridSize': 3,
-            'sequenceLength': 3,
-            'showDuration': 2000,
+            'sequenceLength': 2,
+            'showDuration': 2500,
             'trials': 5,
           },
         );
       case DifficultyLevel.easy:
         return const GameDifficultyConfig(
           rounds: 5,
-          timeLimit: 45,
+          timeLimit: 50,
           complexity: 0.4,
           gameSpecific: {
             'gridSize': 4,
-            'sequenceLength': 4,
-            'showDuration': 1800,
+            'sequenceLength': 3,
+            'showDuration': 2000,
             'trials': 6,
           },
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 60,
           complexity: 0.6,
           gameSpecific: {
@@ -273,13 +264,13 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
-          timeLimit: 90,
+          rounds: 10,
+          timeLimit: 70,
           complexity: 0.8,
           gameSpecific: {
             'gridSize': 5,
             'sequenceLength': 7,
-            'showDuration': 1200,
+            'showDuration': 1000,
             'trials': 10,
           },
         );
@@ -293,29 +284,29 @@ class DifficultyConfigProvider {
       case DifficultyLevel.veryEasy:
         return const GameDifficultyConfig(
           rounds: 3,
-          timeLimit: 45,
+          timeLimit: 60,
           complexity: 0.2,
           gameSpecific: {
             'nodeCount': 8,
-            'timePerTrial': 15000,
+            'timePerTrial': 20000,
             'trials': 3,
           },
         );
       case DifficultyLevel.easy:
         return const GameDifficultyConfig(
           rounds: 5,
-          timeLimit: 60,
+          timeLimit: 75,
           complexity: 0.4,
           gameSpecific: {
             'nodeCount': 12,
-            'timePerTrial': 12000,
+            'timePerTrial': 15000,
             'trials': 4,
           },
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
-          timeLimit: 90,
+          rounds: 7,
+          timeLimit: 80,
           complexity: 0.6,
           gameSpecific: {
             'nodeCount': 16,
@@ -325,12 +316,12 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
-          timeLimit: 120,
+          rounds: 10,
+          timeLimit: 90,
           complexity: 0.8,
           gameSpecific: {
             'nodeCount': 20,
-            'timePerTrial': 8000,
+            'timePerTrial': 7000,
             'trials': 6,
           },
         );
@@ -343,10 +334,10 @@ class DifficultyConfigProvider {
       case DifficultyLevel.veryEasy:
         return const GameDifficultyConfig(
           rounds: 3,
-          timeLimit: 30,
+          timeLimit: 45,
           complexity: 0.2,
           gameSpecific: {
-            'trials': 15,
+            'trials': 10,
             'goRatio': 0.8,
             'stimulusDuration': 2000,
             'responseWindow': 1500,
@@ -355,10 +346,10 @@ class DifficultyConfigProvider {
       case DifficultyLevel.easy:
         return const GameDifficultyConfig(
           rounds: 5,
-          timeLimit: 45,
+          timeLimit: 60,
           complexity: 0.4,
           gameSpecific: {
-            'trials': 20,
+            'trials': 15,
             'goRatio': 0.7,
             'stimulusDuration': 1500,
             'responseWindow': 1200,
@@ -366,11 +357,11 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
-          timeLimit: 60,
+          rounds: 7,
+          timeLimit: 70,
           complexity: 0.6,
           gameSpecific: {
-            'trials': 30,
+            'trials': 20,
             'goRatio': 0.6,
             'stimulusDuration': 1200,
             'responseWindow': 1000,
@@ -378,11 +369,11 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
-          timeLimit: 75,
+          rounds: 10,
+          timeLimit: 80,
           complexity: 0.8,
           gameSpecific: {
-            'trials': 40,
+            'trials': 30,
             'goRatio': 0.5,
             'stimulusDuration': 1000,
             'responseWindow': 800,
@@ -418,7 +409,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 90,
           complexity: 0.6,
           gameSpecific: {
@@ -429,7 +420,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 120,
           complexity: 0.8,
           gameSpecific: {
@@ -471,7 +462,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 90,
           complexity: 0.6,
           gameSpecific: {
@@ -483,7 +474,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 120,
           complexity: 0.8,
           gameSpecific: {
@@ -526,7 +517,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 90,
           complexity: 0.6,
           gameSpecific: {
@@ -538,7 +529,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 120,
           complexity: 0.8,
           gameSpecific: {
@@ -580,7 +571,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 120,
           complexity: 0.6,
           gameSpecific: {
@@ -592,7 +583,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 150,
           complexity: 0.8,
           gameSpecific: {
@@ -605,8 +596,8 @@ class DifficultyConfigProvider {
     }
   }
 
-  /// Get configuration for Visual Search game
-  static GameDifficultyConfig getVisualSearchConfig(
+  /// Get configuration for Color Dominance game
+  static GameDifficultyConfig getColorDominanceConfig(
       DifficultyLevel difficulty) {
     switch (difficulty) {
       case DifficultyLevel.veryEasy:
@@ -635,7 +626,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.medium:
         return const GameDifficultyConfig(
-          rounds: 8,
+          rounds: 7,
           timeLimit: 90,
           complexity: 0.6,
           gameSpecific: {
@@ -647,7 +638,7 @@ class DifficultyConfigProvider {
         );
       case DifficultyLevel.hard:
         return const GameDifficultyConfig(
-          rounds: 12,
+          rounds: 10,
           timeLimit: 120,
           complexity: 0.8,
           gameSpecific: {
@@ -687,7 +678,7 @@ class DifficultyConfigProvider {
       case GameId.wordChain:
         return getWordChainConfig(difficulty);
       case GameId.visualSearch:
-        return getVisualSearchConfig(difficulty);
+        return getColorDominanceConfig(difficulty);
     }
   }
 }

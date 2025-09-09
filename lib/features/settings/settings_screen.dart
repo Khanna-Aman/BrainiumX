@@ -104,10 +104,34 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => context.push('/rating-help'),
                     ),
                     ListTile(
+                      leading: const Icon(Icons.psychology),
+                      title: const Text('ELO System Explained'),
+                      subtitle:
+                          const Text('Understanding the ELO rating algorithm'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => context.push('/elo-help'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.games),
+                      title: const Text('How Games Work'),
+                      subtitle: const Text(
+                          'Detailed guide for all 12 cognitive games'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => context.push('/games-help'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.trending_up),
+                      title: const Text('Cognitive Domains'),
+                      subtitle:
+                          const Text('What each game measures and improves'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => context.push('/domains-help'),
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.article),
                       title: const Text('About BrainiumX'),
                       subtitle: const Text(
-                          'Learn more about our brain training games'),
+                          'Learn more about our brain training platform'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => _showAbout(context),
                     ),

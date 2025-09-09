@@ -35,6 +35,7 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
   int _timeLimit = 120;
   int _remainingTime = 120;
   int _gridSize = 4;
+  int _sequenceLength = 3;
 
   List<bool> _responses = [];
   double _totalScore = 0;
@@ -57,6 +58,7 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
       _totalRounds = difficultyConfig.rounds;
       _timeLimit = difficultyConfig.timeLimit;
       _gridSize = difficultyConfig.gameSpecific['gridSize'] as int;
+      _sequenceLength = difficultyConfig.gameSpecific['sequenceLength'] as int;
       _remainingTime = _timeLimit;
     } else {
       // Fallback to rating-based configuration
@@ -315,17 +317,8 @@ class _MemoryGridGameState extends ConsumerState<MemoryGridGame> {
 
   void _startRound() {
     // Get difficulty configuration
-    final gameConfigs = ref.read(gameConfigsProvider);
-    final config = gameConfigs.firstWhere((c) => c.gameId == widget.gameId);
-    final rating = config.difficultyRating;
-    final difficultyConfig = DifficultyManager.getMemoryGridConfig(rating);
-
-    // Calculate number of targets based on difficulty and round progression
-    final progressRatio = _currentRound / _totalRounds;
-    final targetRange =
-        difficultyConfig.maxTargets - difficultyConfig.startingTargets;
-    final numTargets = difficultyConfig.startingTargets +
-        (targetRange * progressRatio).round();
+    // Use configured sequence length
+    final numTargets = _sequenceLength;
 
     _targetCells.clear();
     _selectedCells.clear();

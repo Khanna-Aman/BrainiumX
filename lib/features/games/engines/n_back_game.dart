@@ -162,35 +162,48 @@ class _NBackGameState extends ConsumerState<NBackGame> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 3x3 Grid
-              Container(
-                width: 300,
-                height: 300,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: 9,
-                  itemBuilder: (context, index) {
-                    final isActive =
-                        _showingStimulus && index == _currentPosition;
+              // 3x3 Grid with Swipe Support
+              GestureDetector(
+                onPanEnd: (details) {
+                  if (_canRespond && _currentTick > _nLevel) {
+                    // Swipe right for MATCH, swipe left for NO MATCH
+                    if (details.velocity.pixelsPerSecond.dx > 300) {
+                      _handleResponse(true);
+                    } else if (details.velocity.pixelsPerSecond.dx < -300) {
+                      _handleResponse(false);
+                    }
+                  }
+                },
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  child: GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: 9,
+                    itemBuilder: (context, index) {
+                      final isActive =
+                          _showingStimulus && index == _currentPosition;
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                        border: Border.all(
-                            color: Theme.of(context).colorScheme.outline,
-                            width: 2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    );
-                  },
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
 
