@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BrainiumX Feature Graphic Generator</title>
+</head>
+
+<body>
+    <canvas id="canvas" width="1024" height="500"></canvas>
+    <br><br>
+    <button onclick="downloadImage()">Download Feature Graphic</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Create gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 500);
+        gradient.addColorStop(0, '#2196F3');
+        gradient.addColorStop(1, '#1976D2');
+
+        // Fill background
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 500);
+
+        // Add brain icon (simplified)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(200, 250, 80, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Add gear icon inside brain
+        ctx.fillStyle = '#2196F3';
+        ctx.font = '60px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚙️', 200, 270);
+
+        // Add main title
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('BrainiumX', 320, 200);
+
+        // Add subtitle
+        ctx.font = '32px Arial';
+        ctx.fillText('Ultimate Brain Training Games', 320, 250);
+
+        // Add features
+        ctx.font = '24px Arial';
+        ctx.fillText('✓ 12 Cognitive Games  ✓ Memory Training  ✓ Offline Play', 320, 300);
+
+        // Add call to action
+        ctx.font = 'bold 28px Arial';
+        ctx.fillText('Train Your Mind Today!', 320, 350);
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'brainiumx-feature-graphic.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+
+</html>

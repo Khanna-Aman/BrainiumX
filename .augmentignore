@@ -1,0 +1,36 @@
+# Exclude everything except core source code
+# Only include lib/ directory and essential config files
+
+# Exclude all platform-specific directories
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+
+# Exclude build and cache directories
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Exclude assets that might be large
+assets/
+docs/
+
+# Exclude test directories
+test/
+
+# Exclude IDE and config files
+.vscode/
+.idea/
+.git/
+*.iml
+pubspec.lock
+
+# Only allow essential files
+!lib/
+!pubspec.yaml
+!analysis_options.yaml
+!README.md
